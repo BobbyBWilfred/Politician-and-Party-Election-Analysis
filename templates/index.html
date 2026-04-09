@@ -3,390 +3,1031 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Indian Election Analyzer</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Indian General Election Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; color: #1f2937; }
-    header { background-color: #1e293b; color: white; padding: 1.25rem 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-    header h1 { font-size: 2rem; font-weight: 800; color: #facc15; }
-    main { max-width: 1140px; margin: 0 auto; padding: 2rem 1.25rem; }
-    .tabBtn.active { background-color: #1e40af; color: white; font-weight: bold; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
-    .tabSection h2::after { content: ""; display: block; width: 60px; height: 3px; background-color: #2563eb; margin-top: 8px; border-radius: 1px; }
-    .section-card { background-color: #ffffff; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); padding: 2rem; }
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; align-items: end; }
-    footer { background-color: #1f2937; color: #d1d5db; text-align: center; padding: 1.5rem 0; margin-top: 3rem; }
-    .autocomplete-container { position: relative; }
+    /* ─── Design Tokens ──────────────────────────────────────────────── */
+    :root {
+      --navy:        #0e1c36;
+      --navy-mid:    #162444;
+      --navy-light:  #1f3460;
+      --gold:        #c8922a;
+      --gold-light:  #e8b45a;
+      --saffron:     #e07b20;
+      --cream:       #f8f4ed;
+      --cream-dark:  #ede8df;
+      --white:       #ffffff;
+      --text-dark:   #1a1a2e;
+      --text-mid:    #3d4a6b;
+      --text-light:  #7a8aad;
+      --green:       #1a6b3a;
+      --green-bg:    #e8f5ee;
+      --red:         #8b1a1a;
+      --red-bg:      #faeaea;
+      --border:      #d6cfc3;
+      --shadow:      0 4px 24px rgba(14,28,54,0.10);
+      --radius:      6px;
+    }
+
+    /* ─── Reset & Base ───────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--cream);
+      color: var(--text-dark);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────────────── */
+    header {
+      background: var(--navy);
+      border-bottom: 4px solid var(--gold);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-tricolor {
+      height: 4px;
+      background: linear-gradient(to right, #FF9933 33.33%, #ffffff 33.33% 66.66%, #138808 66.66%);
+    }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 0.85rem 1.5rem;
+      display: flex; align-items: center; gap: 1.25rem;
+    }
+    .header-emblem {
+      width: 48px; height: 48px; flex-shrink: 0;
+      background: radial-gradient(circle, var(--gold-light) 0%, var(--gold) 60%);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; box-shadow: 0 0 0 3px rgba(200,146,42,0.3);
+    }
+    .header-text h1 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 1.35rem; font-weight: 700;
+      color: var(--gold-light);
+      letter-spacing: 0.03em;
+      line-height: 1.2;
+    }
+    .header-text p {
+      font-size: 0.75rem; color: rgba(255,255,255,0.55);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      font-weight: 500; margin-top: 2px;
+    }
+    .header-badge {
+      margin-left: auto;
+      font-size: 0.7rem; color: rgba(255,255,255,0.4);
+      text-align: right; line-height: 1.4;
+      display: none;
+    }
+    @media(min-width:640px){ .header-badge { display: block; } }
+
+    /* ─── Main Layout ────────────────────────────────────────────────── */
+    main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+    /* ─── Navigation ─────────────────────────────────────────────────── */
+    .nav-bar {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px;
+      display: flex; flex-wrap: wrap; gap: 4px;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .tabBtn {
+      flex: 1 1 auto;
+      padding: 0.5rem 1rem;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.82rem; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--text-mid);
+      background: transparent;
+      border: none; border-radius: 4px;
+      cursor: pointer; transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .tabBtn:hover { background: var(--cream); color: var(--navy); }
+    .tabBtn.active {
+      background: var(--navy);
+      color: var(--gold-light);
+      box-shadow: 0 2px 8px rgba(14,28,54,0.25);
+    }
+
+    /* ─── Panel Card ─────────────────────────────────────────────────── */
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-header {
+      background: var(--navy);
+      padding: 1.1rem 1.75rem;
+      display: flex; align-items: center; gap: 0.75rem;
+      border-bottom: 3px solid var(--gold);
+    }
+    .panel-header h2 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 1.1rem; font-weight: 700;
+      color: var(--gold-light); letter-spacing: 0.02em;
+    }
+    .panel-header .panel-icon { font-size: 1.2rem; }
+    .panel-body { padding: 1.75rem; }
+
+    /* ─── Form Controls ──────────────────────────────────────────────── */
+    .form-row {
+      display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;
+      margin-bottom: 1.5rem;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 4px; flex: 1 1 200px; }
+    .form-group label {
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--text-light);
+    }
+    select, input[type="text"] {
+      height: 40px; padding: 0 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--white);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.9rem; color: var(--text-dark);
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    select:focus, input[type="text"]:focus {
+      outline: none; border-color: var(--navy-light);
+      box-shadow: 0 0 0 3px rgba(14,28,54,0.08);
+    }
+    .btn {
+      height: 40px; padding: 0 1.5rem;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.82rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      border: none; border-radius: var(--radius);
+      cursor: pointer; transition: all 0.18s;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-primary { background: var(--navy); color: var(--gold-light); }
+    .btn-primary:hover { background: var(--navy-light); }
+    .btn-danger { background: #7a1010; color: #ffd6d6; }
+    .btn-danger:hover { background: #8b1a1a; }
+
+    /* ─── Badges ─────────────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 3px;
+      font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .badge-over  { background: var(--green-bg); color: var(--green); }
+    .badge-under { background: var(--red-bg);   color: var(--red); }
+    .badge-even  { background: #f0f3ff;          color: #3d4a8b; }
+    .badge-win   { background: var(--navy);      color: var(--gold-light); font-size: 0.65rem; }
+    .badge-seat  { background: var(--cream-dark); color: var(--text-mid); font-size: 0.68rem; padding: 2px 6px; }
+
+    /* ─── Tables ─────────────────────────────────────────────────────── */
+    .data-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .data-table thead th {
+      background: var(--navy); color: var(--gold-light);
+      padding: 0.65rem 0.85rem;
+      font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      text-align: left; white-space: nowrap;
+      cursor: pointer; user-select: none;
+    }
+    .data-table thead th:hover { background: var(--navy-light); }
+    .data-table thead th .sort-arrow { opacity: 0.4; margin-left: 4px; font-size: 0.65rem; }
+    .data-table thead th.sort-asc .sort-arrow::after { content: " ▲"; opacity: 1; }
+    .data-table thead th.sort-desc .sort-arrow::after { content: " ▼"; opacity: 1; }
+    .data-table tbody tr { border-bottom: 1px solid var(--cream-dark); transition: background 0.1s; }
+    .data-table tbody tr:last-child { border-bottom: none; }
+    .data-table tbody tr:hover { background: var(--cream); }
+    .data-table td { padding: 0.6rem 0.85rem; vertical-align: middle; }
+    .data-table td.name-col { font-weight: 600; color: var(--navy); }
+    .data-table td.num-col { font-variant-numeric: tabular-nums; text-align: right; }
+    .data-table .pos-1 { background: rgba(200,146,42,0.06); }
+
+    /* ─── Result Cards ───────────────────────────────────────────────── */
+    .result-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .result-card-header {
+      background: var(--navy-mid);
+      padding: 1rem 1.25rem;
+      border-bottom: 2px solid var(--gold);
+    }
+    .result-card-header h3 {
+      font-family: 'Libre Baskerville', serif;
+      color: var(--white); font-size: 1rem;
+    }
+    .result-card-header p { color: rgba(255,255,255,0.55); font-size: 0.8rem; margin-top: 2px; }
+    .result-card-body { padding: 1.25rem; }
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .metric-box {
+      text-align: center; padding: 1rem;
+      background: var(--cream); border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .metric-box .metric-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-light); }
+    .metric-box .metric-value { font-family: 'Libre Baskerville', serif; font-size: 2rem; font-weight: 700; color: var(--navy); margin-top: 4px; }
+    .performance-banner {
+      padding: 0.75rem 1.25rem; border-radius: var(--radius);
+      text-align: center; font-weight: 700; font-size: 1rem; letter-spacing: 0.03em;
+    }
+    .performance-banner.over  { background: var(--green-bg); color: var(--green); border: 1px solid #b2dac3; }
+    .performance-banner.under { background: var(--red-bg);   color: var(--red);   border: 1px solid #f0baba; }
+    .performance-banner.even  { background: #eef0ff;          color: #2a3580;     border: 1px solid #c0c7f0; }
+
+    /* ─── Seat Card (State Analysis) ────────────────────────────────── */
+    .seat-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden; margin-bottom: 0;
+    }
+    .seat-card-header {
+      background: var(--cream);
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      cursor: pointer;
+    }
+    .seat-card-header .seat-name {
+      font-weight: 700; font-size: 0.88rem; color: var(--navy);
+      font-family: 'Libre Baskerville', serif;
+    }
+    .seat-card-header .seat-winner {
+      font-size: 0.78rem; color: var(--text-mid);
+    }
+    .seat-card-header .chevron { color: var(--text-light); font-size: 0.75rem; transition: transform 0.2s; }
+    .seat-card-header.open .chevron { transform: rotate(180deg); }
+    .seat-card-body { display: none; padding: 0; }
+    .seat-card-body.open { display: block; }
+
+    /* ─── Battleground ───────────────────────────────────────────────── */
+    .battle-bar-wrap { background: var(--cream-dark); border-radius: 4px; overflow: hidden; height: 32px; display: flex; margin-top: 1rem; }
+    .battle-bar-c1 { background: var(--navy); display: flex; align-items: center; justify-content: center; color: var(--gold-light); font-size: 0.8rem; font-weight: 700; transition: width 0.6s ease; }
+    .battle-bar-c2 { background: var(--saffron); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; font-weight: 700; transition: width 0.6s ease; }
+    .battle-labels { display: flex; justify-content: space-between; margin-top: 0.4rem; }
+    .battle-labels span { font-size: 0.82rem; font-weight: 700; }
+    .battle-winner-banner {
+      text-align: center;
+      font-family: 'Libre Baskerville', serif;
+      font-size: 1.1rem; font-weight: 700;
+      color: var(--navy); padding: 0.75rem;
+      background: var(--cream); border: 1px solid var(--gold);
+      border-radius: var(--radius); margin-top: 1rem;
+    }
+
+    /* ─── History Chart ──────────────────────────────────────────────── */
+    .chart-wrap { background: var(--cream); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem; }
+
+    /* ─── State Party Chart ──────────────────────────────────────────── */
+    .state-chart-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .state-chart-card h3 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.95rem; color: var(--navy); margin-bottom: 1rem;
+      padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
+    }
+
+    /* ─── Divider ────────────────────────────────────────────────────── */
+    .section-divider {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin: 1.5rem 0 1rem;
+    }
+    .section-divider span {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-light); white-space: nowrap;
+    }
+    .section-divider::before, .section-divider::after {
+      content: ""; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* ─── Loading / Error ────────────────────────────────────────────── */
+    .loading-wrap {
+      padding: 2.5rem; text-align: center; color: var(--text-light);
+    }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--cream-dark);
+      border-top-color: var(--navy); border-radius: 50%;
+      animation: spin 0.7s linear infinite; margin: 0 auto 0.75rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box {
+      padding: 1rem 1.25rem;
+      background: var(--red-bg); border-left: 4px solid var(--red);
+      border-radius: var(--radius); color: var(--red);
+      font-size: 0.88rem;
+    }
+    .error-box strong { display: block; margin-bottom: 2px; }
+
+    /* ─── Info Bar ───────────────────────────────────────────────────── */
+    .info-bar {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.78rem; color: var(--text-light);
+      padding: 0.5rem 0.75rem; background: var(--cream);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      margin-bottom: 1rem;
+    }
+    .info-bar strong { color: var(--navy); }
+
+    /* ─── Seats Grid ─────────────────────────────────────────────────── */
+    .seats-grid { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+    @media(min-width: 860px) { .seats-grid { grid-template-columns: 1fr 1fr; } }
+
+    /* ─── Filter bar ─────────────────────────────────────────────────── */
+    .filter-bar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+    .filter-bar input { flex: 1 1 200px; }
+    .count-pill {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
+      padding: 3px 10px; border-radius: 99px;
+      background: var(--navy); color: var(--gold-light);
+    }
+
+    /* ─── Footer ─────────────────────────────────────────────────────── */
+    footer {
+      background: var(--navy); color: rgba(255,255,255,0.4);
+      text-align: center; padding: 1.25rem;
+      font-size: 0.75rem; letter-spacing: 0.04em;
+      border-top: 3px solid var(--gold);
+    }
+    .hidden { display: none !important; }
+
+    /* ─── Autocomplete hint ──────────────────────────────────────────── */
+    .input-hint { font-size: 0.7rem; color: var(--text-light); margin-top: 3px; }
   </style>
 </head>
 <body>
-  <header class="sticky top-0 z-50">
-    <div class="container mx-auto px-6 flex justify-between items-center">
-      <h1>🗳️ Election Analyzer</h1>
-      <p class="text-sm text-gray-300 hidden sm:block">Insights from Indian General Elections</p>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<div class="header-tricolor"></div>
+<header>
+  <div class="header-inner">
+    <div class="header-emblem">🗳️</div>
+    <div class="header-text">
+      <h1>Indian General Election Analyzer</h1>
+      <p>Data-Driven Political Analysis · Lok Sabha Elections</p>
     </div>
-  </header>
-
-  <main>
-    <div class="mb-8 flex flex-wrap justify-center gap-2 p-2 bg-white shadow-md rounded-xl">
-      <button class="tabBtn active flex-grow sm:flex-grow-0 px-4 py-2 rounded-lg text-sm sm:text-base" data-tab="analyze">Candidate Performance</button>
-      <button class="tabBtn flex-grow sm:flex-grow-0 px-4 py-2 rounded-lg text-sm sm:text-base" data-tab="top">Top Performers</button>
-      <button class="tabBtn flex-grow sm:flex-grow-0 px-4 py-2 rounded-lg text-sm sm:text-base" data-tab="state">State Insights</button>
-      <button class="tabBtn flex-grow sm:flex-grow-0 px-4 py-2 rounded-lg text-sm sm:text-base" data-tab="battle">Battleground</button>
-      <button class="tabBtn flex-grow sm:flex-grow-0 px-4 py-2 rounded-lg text-sm sm:text-base" data-tab="history">Electoral History</button>
+    <div class="header-badge">
+      Machine Learning<br>Powered Analysis
     </div>
-      
-    <div class="section-card">
-        <section id="tab-analyze" class="tabSection">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Analyze Candidate Performance</h2>
-            <div class="form-grid">
-                <div>
-                    <label for="year" class="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                    <select id="year" class="w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></select>
-                </div>
-                <div class="autocomplete-container">
-                    <label for="candidate" class="block text-sm font-medium text-gray-700 mb-1">Candidate Name</label>
-                    <input type="text" id="candidate" list="candidate-list" placeholder="e.g., Narendra Modi" class="w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
-                    <datalist id="candidate-list"></datalist>
-                </div>
-                <button id="analyzeBtn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md shadow hover:bg-indigo-700">Analyze</button>
-            </div>
-            <div id="resultSection" class="mt-8"></div>
-        </section>
+  </div>
+</header>
 
-        <section id="tab-top" class="tabSection hidden">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Top & Bottom Performers</h2>
-            <div class="flex flex-wrap gap-4 items-center">
-                <label for="topYear" class="font-semibold text-sm text-gray-600">Year</label>
-                <select id="topYear" class="border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-indigo-500"></select>
-                <button id="loadTopBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700">Load</button>
-            </div>
-            <div id="topResultsSection" class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8"></div>
-        </section>
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main>
 
-        <section id="tab-state" class="tabSection hidden">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">State-wide Party Performance</h2>
-            <div class="form-grid">
-                <select id="stateYear" class="w-full rounded-md border-gray-300 shadow-sm"></select>
-                <input type="text" id="stateFilter" placeholder="e.g., Uttar Pradesh" class="w-full rounded-md border-gray-300 shadow-sm" />
-                <button id="loadStateBtn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700">Get Insights</button>
-            </div>
-            <div id="stateResultsSection" class="mt-8"></div>
-        </section>
+  <!-- Navigation -->
+  <nav class="nav-bar" role="tablist">
+    <button class="tabBtn active" data-tab="analyze"   role="tab">⬡ Candidate Performance</button>
+    <button class="tabBtn"        data-tab="overview"  role="tab">⬡ Performance Overview</button>
+    <button class="tabBtn"        data-tab="state"     role="tab">⬡ State Analysis</button>
+    <button class="tabBtn"        data-tab="battle"    role="tab">⬡ Battleground Simulator</button>
+    <button class="tabBtn"        data-tab="history"   role="tab">⬡ Electoral History</button>
+  </nav>
 
-        <section id="tab-battle" class="tabSection hidden">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Battleground Simulator</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" id="battleCand1" placeholder="Candidate 1 Name" class="w-full rounded-md border-gray-300 shadow-sm" />
-                <input type="text" id="battleCand2" placeholder="Candidate 2 Name" class="w-full rounded-md border-gray-300 shadow-sm" />
-                <select id="battleYear" class="w-full rounded-md border-gray-300 shadow-sm"></select>
-                <input type="text" id="battleState" placeholder="State" class="w-full rounded-md border-gray-300 shadow-sm" />
-                <input type="text" id="battleConstituency" placeholder="Constituency" class="w-full rounded-md border-gray-300 shadow-sm" />
-                <button id="battleBtn" class="w-full bg-rose-600 text-white px-4 py-2 rounded-md shadow hover:bg-rose-700 md:col-span-2">Simulate</button>
-            </div>
-            <div id="battleResultSection" class="mt-8"></div>
-        </section>
+  <div class="panel">
 
-        <section id="tab-history" class="tabSection hidden">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Candidate Electoral History</h2>
-            <div class="form-grid">
-                <div class="autocomplete-container">
-                    <label for="historyCandidate" class="block text-sm font-medium text-gray-700 mb-1">Candidate Name</label>
-                    <input type="text" id="historyCandidate" list="history-candidate-list" placeholder="Type to search..." class="w-full rounded-md border-gray-300 shadow-sm" />
-                    <datalist id="history-candidate-list"></datalist>
-                </div>
-                <button id="loadHistoryBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700">View History</button>
-            </div>
-            <div id="historyResultSection" class="mt-8"></div>
-        </section>
+    <!-- ══════════════════════════════════════════
+         TAB 1 · CANDIDATE PERFORMANCE
+    ══════════════════════════════════════════ -->
+    <div id="tab-analyze" class="tabSection">
+      <div class="panel-header">
+        <span class="panel-icon">🔍</span>
+        <h2>Candidate Performance Analysis</h2>
+      </div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group" style="flex:0 1 160px">
+            <label for="year">Election Year</label>
+            <select id="year"></select>
+          </div>
+          <div class="form-group">
+            <label for="candidate">Candidate Name</label>
+            <input type="text" id="candidate" list="candidate-list"
+                   placeholder="Start typing to search…" autocomplete="off"/>
+            <datalist id="candidate-list"></datalist>
+            <p class="input-hint">Type ≥ 3 characters — suggestions will appear</p>
+          </div>
+          <button id="analyzeBtn" class="btn btn-primary">Analyse</button>
+        </div>
+        <div id="resultSection"></div>
+      </div>
     </div>
-  </main>
 
-  <footer><p class="text-sm">© 2025 Indian Election Analyzer | A Data-Driven Political Analysis Tool</p></footer>
+    <!-- ══════════════════════════════════════════
+         TAB 2 · PERFORMANCE OVERVIEW
+    ══════════════════════════════════════════ -->
+    <div id="tab-overview" class="tabSection hidden">
+      <div class="panel-header">
+        <span class="panel-icon">📊</span>
+        <h2>Full Performance Overview</h2>
+      </div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group" style="flex:0 1 160px">
+            <label for="ovYear">Election Year</label>
+            <select id="ovYear"></select>
+          </div>
+          <div class="form-group" style="flex:0 1 220px">
+            <label for="ovState">Filter by State</label>
+            <select id="ovState">
+              <option value="all">All States</option>
+            </select>
+          </div>
+          <button id="loadOverviewBtn" class="btn btn-primary">Load Results</button>
+        </div>
+        <div id="overviewSection"></div>
+      </div>
+    </div>
 
-  <script>
-    let stateChart, historyChart;
+    <!-- ══════════════════════════════════════════
+         TAB 3 · STATE ANALYSIS
+    ══════════════════════════════════════════ -->
+    <div id="tab-state" class="tabSection hidden">
+      <div class="panel-header">
+        <span class="panel-icon">🗺️</span>
+        <h2>State-wide Analysis</h2>
+      </div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group" style="flex:0 1 160px">
+            <label for="stateYear">Election Year</label>
+            <select id="stateYear"></select>
+          </div>
+          <div class="form-group" style="flex:0 1 260px">
+            <label for="stateSelect">State</label>
+            <select id="stateSelect">
+              <option value="">— Select a State —</option>
+            </select>
+          </div>
+          <button id="loadStateBtn" class="btn btn-primary">Get Insights</button>
+        </div>
+        <div id="stateResultsSection"></div>
+      </div>
+    </div>
 
-    const debounce = (func, delay) => {
-        let timeoutId;
-        return (...args) => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                func.apply(this, args);
-            }, delay);
-        };
-    };
+    <!-- ══════════════════════════════════════════
+         TAB 4 · BATTLEGROUND SIMULATOR
+    ══════════════════════════════════════════ -->
+    <div id="tab-battle" class="tabSection hidden">
+      <div class="panel-header">
+        <span class="panel-icon">⚔️</span>
+        <h2>Battleground Simulator</h2>
+      </div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="battleCand1">Candidate 1</label>
+            <input type="text" id="battleCand1" list="battle-list-1"
+                   placeholder="Start typing to search…" autocomplete="off"/>
+            <datalist id="battle-list-1"></datalist>
+          </div>
+          <div class="form-group">
+            <label for="battleCand2">Candidate 2</label>
+            <input type="text" id="battleCand2" list="battle-list-2"
+                   placeholder="Start typing to search…" autocomplete="off"/>
+            <datalist id="battle-list-2"></datalist>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex:0 1 160px">
+            <label for="battleYear">Election Year</label>
+            <select id="battleYear"></select>
+          </div>
+          <div class="form-group" style="flex:0 1 220px">
+            <label for="battleState">State</label>
+            <select id="battleState">
+              <option value="">— Select a State —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="battleConstituency">Constituency</label>
+            <input type="text" id="battleConstituency" placeholder="e.g. Varanasi"/>
+          </div>
+          <button id="battleBtn" class="btn btn-danger">Simulate</button>
+        </div>
+        <div id="battleResultSection"></div>
+      </div>
+    </div>
 
-    function displayError(section, message) {
-        section.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mt-6" role="alert"><p class="font-bold">Error</p><p>${message}</p></div>`;
-    }
-    function displayLoading(section) {
-        section.innerHTML = `<div class="text-center p-4 mt-6"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div><p class="text-lg font-semibold text-indigo-600 mt-4">Loading...</p></div>`;
-    }
-    
+    <!-- ══════════════════════════════════════════
+         TAB 5 · ELECTORAL HISTORY
+    ══════════════════════════════════════════ -->
+    <div id="tab-history" class="tabSection hidden">
+      <div class="panel-header">
+        <span class="panel-icon">📜</span>
+        <h2>Candidate Electoral History</h2>
+      </div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="historyCandidate">Candidate Name</label>
+            <input type="text" id="historyCandidate" list="history-candidate-list"
+                   placeholder="Start typing to search…" autocomplete="off"/>
+            <datalist id="history-candidate-list"></datalist>
+            <p class="input-hint">Type ≥ 3 characters — suggestions will appear</p>
+          </div>
+          <button id="loadHistoryBtn" class="btn btn-primary">View History</button>
+        </div>
+        <div id="historyResultSection"></div>
+      </div>
+    </div>
 
-    const resultSection = document.getElementById('resultSection');
-    const topResultsSection = document.getElementById('topResultsSection');
-    const stateResultsSection = document.getElementById('stateResultsSection');
-    const battleResultSection = document.getElementById('battleResultSection');
-    const historyResultSection = document.getElementById('historyResultSection');
+  </div><!-- /panel -->
+</main>
 
+<footer>
+  <p>Indian General Election Analyzer · Powered by Machine Learning &amp; Official Election Commission Data</p>
+</footer>
 
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════ -->
+<script>
+"use strict";
 
-    async function fetchData(url, section) {
-        displayLoading(section);
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.message || `HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            displayError(section, error.message);
-            return null;
-        }
-    }
+/* ─── Utilities ──────────────────────────────────────────────────────── */
+const debounce = (fn, ms) => {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+};
 
-    
-    document.querySelectorAll('.tabBtn').forEach(button => {
-        button.addEventListener('click', () => {
-            const tabId = button.dataset.tab;
-            document.querySelectorAll('.tabBtn').forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            document.querySelectorAll('.tabSection').forEach(section => {
-                section.id === `tab-${tabId}` ? section.classList.remove('hidden') : section.classList.add('hidden');
-            });
+function showLoading(el) {
+  el.innerHTML = `<div class="loading-wrap"><div class="spinner"></div><p>Loading data…</p></div>`;
+}
+function showError(el, msg) {
+  el.innerHTML = `<div class="error-box"><strong>Error</strong>${msg}</div>`;
+}
+
+async function apiFetch(url, el) {
+  if (el) showLoading(el);
+  try {
+    const r = await fetch(url);
+    if (!r.ok) { const e = await r.json(); throw new Error(e.message || `HTTP ${r.status}`); }
+    return await r.json();
+  } catch(e) { if (el) showError(el, e.message); return null; }
+}
+
+function perfBadge(alpha) {
+  if (alpha === null || alpha === undefined) return '';
+  const v = parseFloat(alpha);
+  if (v >  2) return `<span class="badge badge-over">▲ ${v.toFixed(2)}</span>`;
+  if (v < -2) return `<span class="badge badge-under">▼ ${Math.abs(v).toFixed(2)}</span>`;
+  return `<span class="badge badge-even">≈ ${v.toFixed(2)}</span>`;
+}
+function posLabel(p) {
+  if (p === 1) return `<span class="badge badge-win">WON</span>`;
+  if (!p) return '—';
+  return `<small>#${p}</small>`;
+}
+
+/* ─── Tab switching ──────────────────────────────────────────────────── */
+document.querySelectorAll('.tabBtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabBtn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tabSection').forEach(s => s.classList.add('hidden'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+  });
+});
+
+/* ─── Global state ───────────────────────────────────────────────────── */
+let stateChart = null;
+let historyChart = null;
+let overviewAllData = [];
+
+/* ─── Populate dropdowns on load ─────────────────────────────────────── */
+async function populateMeta() {
+  const [metaData, statesData] = await Promise.all([
+    apiFetch('/api/meta', null),
+    apiFetch('/api/states', null)
+  ]);
+
+  if (metaData && metaData.years) {
+    const years = metaData.years;
+    const yearOpts = years.map(y => `<option value="${y}">${y}</option>`).join('');
+    document.querySelectorAll('#year, #ovYear, #stateYear, #battleYear').forEach(s => {
+      s.innerHTML = yearOpts;
+    });
+  }
+
+  if (statesData && statesData.states) {
+    const stateOpts = statesData.states
+      .map(s => `<option value="${s}">${s.replace(/_/g,' ')}</option>`)
+      .join('');
+    const blankOpt = '<option value="">— Select a State —</option>';
+    const allOpt   = '<option value="all">All States</option>';
+
+    document.getElementById('stateSelect').innerHTML  = blankOpt + stateOpts;
+    document.getElementById('battleState').innerHTML  = blankOpt + stateOpts;
+    document.getElementById('ovState').innerHTML      = allOpt   + statesData.states
+      .map(s => `<option value="${s}">${s.replace(/_/g,' ')}</option>`).join('');
+  }
+}
+
+/* ─── Autocomplete (candidate search) ───────────────────────────────── */
+async function fetchSuggestions(inputEl, datalistId, yearElId) {
+  const q = inputEl.value.trim();
+  const dl = document.getElementById(datalistId);
+  if (q.length < 3) { dl.innerHTML = ''; return; }
+  let url = `/api/search_candidates?query=${encodeURIComponent(q)}`;
+  const yr = yearElId && document.getElementById(yearElId)?.value;
+  if (yr) url += `&year=${yr}`;
+  const matches = await apiFetch(url, null);
+  dl.innerHTML = (matches || []).map(m => `<option value="${m}"></option>`).join('');
+}
+
+document.getElementById('candidate').addEventListener('input', debounce(e => fetchSuggestions(e.target, 'candidate-list', 'year'), 300));
+document.getElementById('historyCandidate').addEventListener('input', debounce(e => fetchSuggestions(e.target, 'history-candidate-list', null), 300));
+document.getElementById('battleCand1').addEventListener('input', debounce(e => fetchSuggestions(e.target, 'battle-list-1', 'battleYear'), 300));
+document.getElementById('battleCand2').addEventListener('input', debounce(e => fetchSuggestions(e.target, 'battle-list-2', 'battleYear'), 300));
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB 1 · CANDIDATE PERFORMANCE
+═══════════════════════════════════════════════════════════════════════ */
+document.getElementById('analyzeBtn').addEventListener('click', async () => {
+  const year      = document.getElementById('year').value;
+  const candidate = document.getElementById('candidate').value.trim();
+  const sec       = document.getElementById('resultSection');
+  if (!candidate) { showError(sec, 'Please enter a candidate name.'); return; }
+
+  const result = await apiFetch(`/api/analyze?year=${year}&candidate=${encodeURIComponent(candidate)}`, sec);
+  if (!result || result.status !== 'success') { if (result) showError(sec, result.message); return; }
+
+  const d = result.data[0];
+  const delta = parseFloat(d.performance_score);
+  const tagClass = d.performance_tag === 'OVERPERFORMED' ? 'over' : d.performance_tag === 'UNDERPERFORMED' ? 'under' : 'even';
+  const tagLabel = d.performance_tag === 'OVERPERFORMED' ? `▲ Overperformed by ${delta}%`
+                 : d.performance_tag === 'UNDERPERFORMED' ? `▼ Underperformed by ${Math.abs(delta)}%`
+                 : `≈ Performed as expected`;
+
+  sec.innerHTML = `
+    <div class="result-card">
+      <div class="result-card-header">
+        <h3>${d.candidate}</h3>
+        <p>${d.party} &nbsp;·&nbsp; ${d.constituency}</p>
+      </div>
+      <div class="result-card-body">
+        <div class="metrics-grid">
+          <div class="metric-box">
+            <div class="metric-label">Actual Vote Share</div>
+            <div class="metric-value">${d.actual_vs}%</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Model-Expected Share</div>
+            <div class="metric-value">${d.expected_vs}%</div>
+          </div>
+        </div>
+        <div class="performance-banner ${tagClass}">${tagLabel}</div>
+      </div>
+    </div>`;
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB 2 · PERFORMANCE OVERVIEW
+═══════════════════════════════════════════════════════════════════════ */
+document.getElementById('loadOverviewBtn').addEventListener('click', async () => {
+  const year  = document.getElementById('ovYear').value;
+  const state = document.getElementById('ovState').value;
+  const sec   = document.getElementById('overviewSection');
+
+  const url = `/api/performance_overview?year=${year}&state=${encodeURIComponent(state)}`;
+  const result = await apiFetch(url, sec);
+  if (!result || result.status !== 'success') { if (result) showError(sec, result.message); return; }
+
+  overviewAllData = result.data;
+  renderOverviewTable(sec, overviewAllData);
+});
+
+function renderOverviewTable(sec, data) {
+  if (!data.length) { sec.innerHTML = '<p style="color:var(--text-light);padding:1rem">No records found.</p>'; return; }
+
+  const overCount  = data.filter(d => d.overperformance !== null && d.overperformance > 2).length;
+  const underCount = data.filter(d => d.overperformance !== null && d.overperformance < -2).length;
+
+  sec.innerHTML = `
+    <div class="info-bar">
+      <strong>${data.length}</strong> candidates &nbsp;|&nbsp;
+      <strong style="color:var(--green)">${overCount} overperformed</strong> &nbsp;|&nbsp;
+      <strong style="color:var(--red)">${underCount} underperformed</strong>
+    </div>
+    <div class="filter-bar">
+      <input type="text" id="ovFilter" placeholder="Filter by name, party or constituency…" style="flex:1 1 240px"/>
+    </div>
+    <div class="data-table-wrap" id="ovTableWrap">
+      ${buildOverviewTableHTML(data)}
+    </div>`;
+
+  document.getElementById('ovFilter').addEventListener('input', debounce(e => {
+    const q = e.target.value.toLowerCase();
+    const filtered = overviewAllData.filter(d =>
+      (d.candidate||'').toLowerCase().includes(q) ||
+      (d.party||'').toLowerCase().includes(q) ||
+      (d.constituency_name||'').toLowerCase().includes(q) ||
+      (d.state_name||'').toLowerCase().includes(q)
+    );
+    document.getElementById('ovTableWrap').innerHTML = buildOverviewTableHTML(filtered);
+    attachOverviewSort();
+  }, 200));
+
+  attachOverviewSort();
+}
+
+function buildOverviewTableHTML(data) {
+  const rows = data.map(d => {
+    const alpha = d.overperformance;
+    const rowClass = alpha !== null && alpha > 2 ? '' : alpha !== null && alpha < -2 ? '' : '';
+    return `<tr class="${rowClass}">
+      <td class="name-col">${d.candidate || '—'}</td>
+      <td>${d.party || '—'}</td>
+      <td>${d.constituency_name || '—'}</td>
+      <td>${(d.state_name||'').replace(/_/g,' ')}</td>
+      <td class="num-col">${d.actual_vs !== null ? d.actual_vs.toFixed(2)+'%' : '—'}</td>
+      <td class="num-col">${d.expected_vs !== null ? d.expected_vs.toFixed(2)+'%' : '—'}</td>
+      <td class="num-col">${perfBadge(alpha)}</td>
+      <td>${posLabel(d.position)}</td>
+    </tr>`;
+  }).join('');
+
+  return `<table class="data-table" id="ovTable">
+    <thead><tr>
+      <th data-col="candidate">Candidate<span class="sort-arrow"></span></th>
+      <th data-col="party">Party<span class="sort-arrow"></span></th>
+      <th data-col="constituency_name">Constituency<span class="sort-arrow"></span></th>
+      <th data-col="state_name">State<span class="sort-arrow"></span></th>
+      <th data-col="actual_vs" class="sort-desc">Actual VS<span class="sort-arrow"></span></th>
+      <th data-col="expected_vs">Expected VS<span class="sort-arrow"></span></th>
+      <th data-col="overperformance">Alpha Score<span class="sort-arrow"></span></th>
+      <th data-col="position">Result<span class="sort-arrow"></span></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+let ovSortCol = 'overperformance', ovSortDir = -1;
+function attachOverviewSort() {
+  document.querySelectorAll('#ovTable thead th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (ovSortCol === col) ovSortDir *= -1; else { ovSortCol = col; ovSortDir = -1; }
+      const sorted = [...overviewAllData].sort((a,b) => {
+        const av = a[col], bv = b[col];
+        if (av === null || av === undefined) return 1;
+        if (bv === null || bv === undefined) return -1;
+        return typeof av === 'number' ? (av - bv) * ovSortDir : String(av).localeCompare(String(bv)) * ovSortDir;
+      });
+      document.getElementById('ovTableWrap').innerHTML = buildOverviewTableHTML(sorted);
+      attachOverviewSort();
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB 3 · STATE ANALYSIS
+═══════════════════════════════════════════════════════════════════════ */
+document.getElementById('loadStateBtn').addEventListener('click', async () => {
+  const year  = document.getElementById('stateYear').value;
+  const state = document.getElementById('stateSelect').value;
+  const sec   = document.getElementById('stateResultsSection');
+  if (!state) { showError(sec, 'Please select a state.'); return; }
+
+  showLoading(sec);
+
+  const [summaryResult, seatsResult] = await Promise.all([
+    apiFetch(`/api/state_insights?year=${year}&state=${encodeURIComponent(state)}`, null),
+    apiFetch(`/api/state_seats?year=${year}&state=${encodeURIComponent(state)}`, null)
+  ]);
+
+  let html = '';
+
+  // ── Party vote share chart ──────────────────────────────────────────
+  if (summaryResult && summaryResult.status === 'success') {
+    html += `
+      <div class="state-chart-card">
+        <h3>Party Vote Share — ${summaryResult.state}, ${summaryResult.year}</h3>
+        <canvas id="stateChartCanvas"></canvas>
+      </div>`;
+  }
+
+  // ── Seats breakdown ─────────────────────────────────────────────────
+  if (seatsResult && seatsResult.status === 'success') {
+    const seats = seatsResult.seats;
+    html += `
+      <div class="section-divider"><span>Constituency-level Breakdown · ${seats.length} Seats</span></div>
+      <div class="filter-bar">
+        <input type="text" id="seatFilter" placeholder="Filter constituencies…" style="flex:1 1 200px"/>
+        <span class="count-pill" id="seatCount">${seats.length} seats</span>
+      </div>
+      <div class="seats-grid" id="seatsGrid">
+        ${seats.map(seat => buildSeatCard(seat)).join('')}
+      </div>`;
+  }
+
+  if (!html) { showError(sec, 'No data found for the selected state and year.'); return; }
+  sec.innerHTML = html;
+
+  // Render chart
+  if (summaryResult && summaryResult.status === 'success') {
+    if (stateChart) stateChart.destroy();
+    const top12 = summaryResult.party_summary.slice(0, 12);
+    stateChart = new Chart(document.getElementById('stateChartCanvas'), {
+      type: 'bar',
+      data: {
+        labels: top12.map(p => p.party),
+        datasets: [{
+          label: 'Vote Share %',
+          data: top12.map(p => p['vote_share_%']),
+          backgroundColor: 'rgba(14,28,54,0.82)',
+          borderColor: 'rgba(200,146,42,0.9)',
+          borderWidth: 1.5,
+        }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { callback: v => v.toFixed(1)+'%' } } }
+      }
+    });
+  }
+
+  // Seat card accordion
+  document.querySelectorAll('.seat-card-header').forEach(h => {
+    h.addEventListener('click', () => {
+      h.classList.toggle('open');
+      h.nextElementSibling.classList.toggle('open');
+    });
+  });
+
+  // Seat filter
+  const seatFilterEl = document.getElementById('seatFilter');
+  if (seatFilterEl && seatsResult) {
+    seatFilterEl.addEventListener('input', () => {
+      const q = seatFilterEl.value.toLowerCase();
+      const filtered = seatsResult.seats.filter(s => s.constituency.toLowerCase().includes(q));
+      document.getElementById('seatsGrid').innerHTML = filtered.map(s => buildSeatCard(s)).join('');
+      document.getElementById('seatCount').textContent = `${filtered.length} seats`;
+      // Re-attach accordion
+      document.querySelectorAll('.seat-card-header').forEach(h => {
+        h.addEventListener('click', () => {
+          h.classList.toggle('open');
+          h.nextElementSibling.classList.toggle('open');
         });
+      });
     });
-    
-    async function updateCandidateSuggestions(event) {
-        const input = event.target;
-        const datalist = document.getElementById(input.getAttribute('list'));
-        const year = document.getElementById('year')?.value;
-        if (input.value.length < 3) {
-            if (datalist) datalist.innerHTML = '';
-            return;
-        }
-        let url = `/api/search_candidates?query=${encodeURIComponent(input.value)}`;
-        if (input.id === 'candidate' && year) { 
-            url += `&year=${year}`;
-        }
-        try {
-            const response = await fetch(url);
-            const matches = await response.json();
-            if (datalist) {
-                datalist.innerHTML = '';
-                matches.forEach(match => {
-                    const option = document.createElement('option');
-                    option.value = match;
-                    datalist.appendChild(option);
-                });
-            }
-        } catch (error) {
-            console.error('Failed to fetch suggestions:', error);
-        }
+  }
+});
+
+function buildSeatCard(seat) {
+  const cands = seat.candidates || [];
+  const rows = cands.map(c => {
+    const deltaNum = c.alpha;
+    const deltaStr = deltaNum !== null ? (deltaNum > 0 ? `+${deltaNum.toFixed(1)}` : deltaNum.toFixed(1)) : '—';
+    const deltaColor = deltaNum > 2 ? 'var(--green)' : deltaNum < -2 ? 'var(--red)' : 'var(--text-light)';
+    return `<tr ${c.position === 1 ? 'class="pos-1"' : ''}>
+      <td class="name-col" style="font-size:0.82rem">${c.candidate || '—'} ${c.position === 1 ? '<span class="badge badge-win" style="font-size:0.6rem">WON</span>' : ''}</td>
+      <td style="font-size:0.78rem;color:var(--text-mid)">${c.party || '—'}</td>
+      <td class="num-col" style="font-size:0.8rem">${c.actual_vs !== null ? c.actual_vs+'%' : '—'}</td>
+      <td class="num-col" style="font-size:0.8rem">${c.expected_vs !== null ? c.expected_vs+'%' : '—'}</td>
+      <td class="num-col" style="font-size:0.8rem;color:${deltaColor};font-weight:700">${deltaStr}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="seat-card">
+    <div class="seat-card-header">
+      <div>
+        <span class="seat-name">${seat.constituency}</span>
+        <span class="seat-winner" style="margin-left:0.5rem">
+          <span class="badge badge-win" style="font-size:0.62rem">✓</span>
+          ${seat.winner} <span style="color:var(--text-light);font-size:0.75rem">(${seat.winner_party})</span>
+        </span>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="seat-card-body">
+      <div class="data-table-wrap" style="border:none;border-radius:0">
+        <table class="data-table" style="font-size:0.82rem">
+          <thead><tr>
+            <th>Candidate</th>
+            <th>Party</th>
+            <th style="text-align:right">Actual VS</th>
+            <th style="text-align:right">Expected VS</th>
+            <th style="text-align:right">Alpha</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB 4 · BATTLEGROUND SIMULATOR
+═══════════════════════════════════════════════════════════════════════ */
+document.getElementById('battleBtn').addEventListener('click', async () => {
+  const year         = document.getElementById('battleYear').value;
+  const state        = document.getElementById('battleState').value;
+  const constituency = document.getElementById('battleConstituency').value.trim();
+  const cand1        = document.getElementById('battleCand1').value.trim();
+  const cand2        = document.getElementById('battleCand2').value.trim();
+  const sec          = document.getElementById('battleResultSection');
+
+  if (!state || !constituency || !cand1 || !cand2) { showError(sec, 'All fields are required for simulation.'); return; }
+
+  const url = `/api/battleground?year=${year}&state=${encodeURIComponent(state)}&constituency=${encodeURIComponent(constituency)}&cand1=${encodeURIComponent(cand1)}&cand2=${encodeURIComponent(cand2)}`;
+  const result = await apiFetch(url, sec);
+  if (!result || result.status !== 'success') { if (result) showError(sec, result.message); return; }
+
+  const sim = result.simulation;
+  const c1 = sim.cand1, c2 = sim.cand2;
+
+  sec.innerHTML = `
+    <div class="result-card">
+      <div class="result-card-header">
+        <h3>${sim.constituency}, ${sim.state}</h3>
+        <p>Simulated Election · ${sim.year}</p>
+      </div>
+      <div class="result-card-body">
+        <div class="battle-bar-wrap">
+          <div class="battle-bar-c1" style="width:${c1.projection}%">${c1.projection}%</div>
+          <div class="battle-bar-c2" style="width:${c2.projection}%">${c2.projection}%</div>
+        </div>
+        <div class="battle-labels">
+          <span style="color:var(--navy)">${c1.name} <small style="font-weight:400;color:var(--text-light)">(${c1.party})</small></span>
+          <span style="color:var(--saffron)">${c2.name} <small style="font-weight:400;color:var(--text-light)">(${c2.party})</small></span>
+        </div>
+        <div class="battle-winner-banner">🏆 Projected Winner: <strong>${sim.winner}</strong></div>
+      </div>
+    </div>`;
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB 5 · ELECTORAL HISTORY
+═══════════════════════════════════════════════════════════════════════ */
+document.getElementById('loadHistoryBtn').addEventListener('click', async () => {
+  const candidate = document.getElementById('historyCandidate').value.trim();
+  const sec       = document.getElementById('historyResultSection');
+  if (!candidate) { showError(sec, 'Please enter a candidate name.'); return; }
+
+  const result = await apiFetch(`/api/history?candidate=${encodeURIComponent(candidate)}`, sec);
+  if (!result || result.status !== 'success') { if (result) showError(sec, result.message); return; }
+
+  const history = result.history;
+  const tableRows = history.map(h => `
+    <tr ${h.position === 1 ? 'class="pos-1"' : ''}>
+      <td class="name-col">${h.year}</td>
+      <td>${h.constituency_name}, <span style="color:var(--text-light)">${(h.state_name||'').replace(/_/g,' ')}</span></td>
+      <td>${h.party}</td>
+      <td class="num-col">${h.vote_share !== null ? h.vote_share.toFixed(2)+'%' : '—'}</td>
+      <td>${posLabel(h.position)}</td>
+    </tr>`).join('');
+
+  sec.innerHTML = `
+    <div class="chart-wrap"><canvas id="historyChartCanvas"></canvas></div>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Year</th><th>Constituency</th><th>Party</th><th style="text-align:right">Vote Share</th><th>Result</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+
+  if (historyChart) historyChart.destroy();
+  historyChart = new Chart(document.getElementById('historyChartCanvas'), {
+    type: 'line',
+    data: {
+      labels: history.map(h => h.year),
+      datasets: [{
+        label: 'Vote Share %',
+        data: history.map(h => h.vote_share),
+        borderColor: '#0e1c36',
+        backgroundColor: 'rgba(200,146,42,0.15)',
+        pointBackgroundColor: history.map(h => h.position === 1 ? '#c8922a' : '#0e1c36'),
+        pointRadius: 5,
+        fill: true, tension: 0.25,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { ticks: { callback: v => v.toFixed(1)+'%' } } }
     }
+  });
+});
 
-    async function populateYears() {
-        const data = await fetchData('/api/meta', resultSection);
-        if (data && data.years) {
-            const yearDropdowns = document.querySelectorAll('#year, #topYear, #stateYear, #battleYear');
-            yearDropdowns.forEach(dropdown => {
-                dropdown.innerHTML = data.years.map(y => `<option value="${y}">${y}</option>`).join('');
-            });
-        }
-    }
-
-
-    document.getElementById('analyzeBtn').addEventListener('click', async () => {
-        const year = document.getElementById('year').value;
-        const candidate = document.getElementById('candidate').value;
-        if (!candidate) {
-            displayError(resultSection, 'Please enter a candidate name.');
-            return;
-        }
-        const url = `/api/analyze?year=${year}&candidate=${encodeURIComponent(candidate)}`;
-        const result = await fetchData(url, resultSection);
-        if (result && result.status === 'success') {
-            const d = result.data[0];
-            const colorClass = d.performance_tag === 'OVERPERFORMED' ? 'text-green-600' : 'text-red-600';
-            resultSection.innerHTML = `
-                <div class="p-6 border rounded-lg shadow-inner bg-gray-50">
-                    <h3 class="text-xl font-bold text-indigo-800">${d.candidate} (${d.party})</h3>
-                    <p class="text-md text-gray-600 mb-4">${d.constituency}</p>
-                    <div class="grid grid-cols-2 gap-4 text-center">
-                        <div>
-                            <p class="text-sm font-semibold text-gray-500">Actual Vote Share</p>
-                            <p class="text-3xl font-bold text-gray-800">${d.actual_vs}%</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-gray-500">Expected Vote Share</p>
-                            <p class="text-3xl font-bold text-gray-800">${d.expected_vs}%</p>
-                        </div>
-                    </div>
-                    <div class="mt-4 text-center p-3 rounded-lg ${d.performance_tag === 'OVERPERFORMED' ? 'bg-green-100' : 'bg-red-100'}">
-                        <p class="text-lg font-bold ${colorClass}">
-                            ${d.performance_tag} by ${d.performance_score}%
-                        </p>
-                    </div>
-                </div>`;
-        } else if (result) {
-            displayError(resultSection, result.message);
-        }
-    });
-
-    
-    document.getElementById('loadTopBtn').addEventListener('click', async () => {
-        const year = document.getElementById('topYear').value;
-        const url = `/api/top_performers?year=${year}`;
-        const result = await fetchData(url, topResultsSection);
-        if (result && result.status === 'success') {
-            const createList = (title, data, color) => `
-                <div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-3">${title}</h3>
-                    <ul class="space-y-2">
-                        ${data.map(p => `
-                            <li class="bg-gray-50 p-3 rounded-lg border flex justify-between items-center">
-                                <div>
-                                    <p class="font-semibold text-indigo-700">${p.candidate}</p>
-                                    <p class="text-xs text-gray-500">${p.constituency_name}, ${p.party}</p>
-                                </div>
-                                <span class="font-bold text-sm ${color}">${p.overperformance_score.toFixed(2)}</span>
-                            </li>`).join('')}
-                    </ul>
-                </div>`;
-            topResultsSection.innerHTML = 
-                createList('🚀 Top Overperformers', result.top_overperformers, 'text-green-600') +
-                createList('📉 Top Underperformers', result.top_underperformers, 'text-red-600');
-        } else if (result) {
-            displayError(topResultsSection, result.message);
-        }
-    });
-
- 
-    document.getElementById('loadStateBtn').addEventListener('click', async () => {
-        const year = document.getElementById('stateYear').value;
-        const state = document.getElementById('stateFilter').value;
-        if (!state) {
-            displayError(stateResultsSection, 'Please enter a state name.');
-            return;
-        }
-        const url = `/api/state_insights?year=${year}&state=${encodeURIComponent(state)}`;
-        const result = await fetchData(url, stateResultsSection);
-        if (result && result.status === 'success') {
-            stateResultsSection.innerHTML = `<canvas id="stateChartCanvas"></canvas>`;
-            if (stateChart) stateChart.destroy();
-            stateChart = new Chart(document.getElementById('stateChartCanvas'), {
-                type: 'bar',
-                data: {
-                    labels: result.party_summary.map(p => p.party),
-                    datasets: [{
-                        label: `Vote Share % in ${result.state}, ${result.year}`,
-                        data: result.party_summary.map(p => p['vote_share_%']),
-                        backgroundColor: 'rgba(79, 70, 229, 0.8)',
-                    }]
-                },
-                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
-            });
-        } else if (result) {
-            displayError(stateResultsSection, result.message);
-        }
-    });
-
-    document.getElementById('battleBtn').addEventListener('click', async () => {
-        const year = document.getElementById('battleYear').value;
-        const state = document.getElementById('battleState').value;
-        const constituency = document.getElementById('battleConstituency').value;
-        const cand1 = document.getElementById('battleCand1').value;
-        const cand2 = document.getElementById('battleCand2').value;
-
-        if (!state || !constituency || !cand1 || !cand2) {
-            displayError(battleResultSection, 'All fields are required for simulation.');
-            return;
-        }
-        const url = `/api/battleground?year=${year}&state=${encodeURIComponent(state)}&constituency=${encodeURIComponent(constituency)}&cand1=${encodeURIComponent(cand1)}&cand2=${encodeURIComponent(cand2)}`;
-        const result = await fetchData(url, battleResultSection);
-        if (result && result.status === 'success') {
-            const sim = result.simulation;
-            const c1 = sim.cand1;
-            const c2 = sim.cand2;
-            battleResultSection.innerHTML = `
-                <div class="border-2 border-dashed border-gray-300 rounded-xl p-6">
-                    <h3 class="text-center font-bold text-xl mb-1 text-gray-700">Prediction: ${sim.constituency}, ${sim.state} (${sim.year})</h3>
-                    <p class="text-center font-bold text-2xl text-rose-600 mb-4">🏆 Winner: ${sim.winner}</p>
-                    <div class="relative pt-1">
-                        <div class="overflow-hidden h-6 text-xs flex rounded bg-indigo-200">
-                            <div style="width:${c1.projection}%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600 font-semibold">${c1.projection}%</div>
-                            <div style="width:${c2.projection}%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-orange-500 font-semibold">${c2.projection}%</div>
-                        </div>
-                    </div>
-                    <div class="flex justify-between text-sm mt-2">
-                        <div class="font-bold text-blue-700">${c1.name} (${c1.party})</div>
-                        <div class="font-bold text-orange-600">${c2.name} (${c2.party})</div>
-                    </div>
-                </div>`;
-        } else if (result) {
-            displayError(battleResultSection, result.message);
-        }
-    });
-
-    document.getElementById('loadHistoryBtn').addEventListener('click', async () => {
-        const candidate = document.getElementById('historyCandidate').value;
-        if (!candidate) {
-            displayError(historyResultSection, 'Please enter a candidate name.');
-            return;
-        }
-        const url = `/api/history?candidate=${encodeURIComponent(candidate)}`;
-        const result = await fetchData(url, historyResultSection);
-        if (result && result.status === 'success') {
-            const history = result.history;
-            const tableRows = history.map(h => `
-                <tr class="border-b">
-                    <td class="p-2 font-semibold">${h.year}</td>
-                    <td class="p-2">${h.constituency_name}, ${h.state_name}</td>
-                    <td class="p-2">${h.party}</td>
-                    <td class="p-2">${h.vote_share.toFixed(2)}%</td>
-                    <td class="p-2 font-bold">${h.position}</td>
-                </tr>`).join('');
-            
-            historyResultSection.innerHTML = `
-                <div class="mb-6"><canvas id="historyChartCanvas"></canvas></div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-100"><tr>
-                            <th class="p-2">Year</th><th class="p-2">Constituency</th><th class="p-2">Party</th><th class="p-2">Vote Share</th><th class="p-2">Position</th>
-                        </tr></thead>
-                        <tbody>${tableRows}</tbody>
-                    </table>
-                </div>`;
-            
-            if (historyChart) historyChart.destroy();
-            historyChart = new Chart(document.getElementById('historyChartCanvas'), {
-                type: 'line',
-                data: {
-                    labels: history.map(h => h.year),
-                    datasets: [{
-                        label: 'Vote Share %',
-                        data: history.map(h => h.vote_share),
-                        borderColor: 'rgb(79, 70, 229)',
-                        backgroundColor: 'rgba(79, 70, 229, 0.5)',
-                        fill: false,
-                        tension: 0.1
-                    }]
-                }
-            });
-
-        } else if (result) {
-            displayError(historyResultSection, result.message);
-        }
-    });
-
-    document.getElementById('candidate').addEventListener('input', debounce(updateCandidateSuggestions, 300));
-    document.getElementById('historyCandidate').addEventListener('input', debounce(updateCandidateSuggestions, 300));
-    
-    document.addEventListener('DOMContentLoaded', populateYears);
-
-  </script>
+/* ─── Init ───────────────────────────────────────────────────────────── */
+populateMeta();
+</script>
 </body>
 </html>
